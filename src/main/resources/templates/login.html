@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html class="loginHtml" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="utf-8">
+    <title>进销存系统登陆</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="icon" href="/resources/favicon.ico">
+    <link rel="stylesheet" href="/resources/layui/css/layui.css" media="all"/>
+    <link rel="stylesheet" href="/resources/css/public.css" media="all"/>
+</head>
+<body class="loginBody">
+<form class="layui-form">
+    <div class="login_face"><img src="/resources/images/face.jpg" class="userAvatar"></div>
+    <div class="layui-form-item input-item">
+        <label for="userName">用户名</label>
+        <input type="text" placeholder="请输入用户名" autocomplete="off" id="userName" name="username" class="layui-input"
+               lay-verify="required">
+    </div>
+    <div class="layui-form-item input-item">
+        <label for="password">密码</label>
+        <input type="password" placeholder="请输入密码" autocomplete="off" id="password" name="password" class="layui-input"
+               lay-verify="required">
+    </div>
+
+    <div class="layui-form-item">
+        <button class="layui-btn layui-block" lay-filter="login" lay-submit>登录</button>
+    </div>
+
+</form>
+
+
+<script type="text/javascript" src="/resources/layui/layui.js"></script>
+<script type="text/javascript" src="/resources/js/cache.js"></script>
+<script>
+    layui.use(['form', 'layer', 'jquery'], function () {
+    var form = layui.form,
+        layer = parent.layer === undefined ? layui.layer : top.layer
+    $ = layui.jquery;
+
+
+    //登录按钮
+    form.on("submit(login)", function (data) {
+        var btn=$(this);
+        btn.text("登录中...").attr("disabled", "disabled").addClass("layui-disabled");
+       //通过ajax的post提交
+        $.post("/user/login",data.field,function (result) {
+            btn.text("登录").attr("disabled", false).removeClass("layui-disabled");
+            //登录成功
+            if (result.status){
+            //后台首页
+                location.href="/index"
+            }
+            //失败弹出
+            layer.msg(result.message);
+        },"json");
+        return false;
+    })
+
+    //表单输入效果
+    $(".loginBody .input-item").click(function (e) {
+        e.stopPropagation();
+        $(this).addClass("layui-input-focus").find(".layui-input").focus();
+    })
+    $(".loginBody .layui-form-item .layui-input").focus(function () {
+        $(this).parent().addClass("layui-input-focus");
+    })
+    $(".loginBody .layui-form-item .layui-input").blur(function () {
+        $(this).parent().removeClass("layui-input-focus");
+        if ($(this).val() != '') {
+            $(this).parent().addClass("layui-input-active");
+        } else {
+            $(this).parent().removeClass("layui-input-active");
+        }
+    })
+})
+</script>
+</body>
+</html>

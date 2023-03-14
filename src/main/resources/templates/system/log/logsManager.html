@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <title>日志管理</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/resources/layui/css/layui.css" media="all"/>
+    <link rel="stylesheet" href="/resources/css/public.css" media="all"/>
+</head>
+<body class="childrenBody">
+<!-- 查询条件开始-->
+<form class="layui-form">
+    <blockquote class="layui-elem-quote quoteBox">
+        <form class="layui-form">
+            <div class="layui-form-item">
+                <div class="layui-col-md3">
+                    <label class="layui-form-label" style="width: 70px;">日志类型</label>
+                    <div class="layui-input-inline" style="width: 150px;">
+                        <select name="type" id="search_type">
+                            <option value="">请选择日志类型</option>
+                            <option value="登陆操作">登录操作</option>
+                            <option value="添加操作">添加操作</option>
+                            <option value="查询操作">查询操作</option>
+                            <option value="删除操作">删除操作</option>
+                            <option value="修改操作">修改操作</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="layui-col-md3">
+                    <label class="layui-form-label" style="width: 70px;">登录人姓名</label>
+                    <div class="layui-input-inline" style="width: 150px;">
+                        <input type="text" name="uname" id="uname" class="layui-input searchVal"
+                               placeholder="请输入登录人姓名"/>
+                    </div>
+                </div>
+                <div class="layui-col-md2">
+                    <label class="layui-form-label" style="width: 70px;">开始时间</label>
+                    <div class="layui-input-inline" style="width: 80px;">
+                        <input type="text" readonly name="startTime" id="startTime" class="layui-input searchVal"
+                               placeholder="开始时间"/>
+                    </div>
+                </div>
+                <div class="layui-col-md2">
+                    <label class="layui-form-label" style="width: 70px;">结束时间</label>
+                    <div class="layui-input-inline" style="width: 80px;">
+                        <input type="text" readonly name="endTime" id="endTime" class="layui-input searchVal"
+                               placeholder="结束时间"/>
+                    </div>
+                </div>
+
+                <div class="layui-col-md2" style="text-align: center;">
+                    <button type="button" class="layui-btn layui-btn-radius" lay-submit lay-filter="doSearch" shiro:hasPermission="info:view">
+                        <span class="layui-icon layui-icon-search"></span>查询
+                    </button>
+                    <button type="reset" class="layui-btn layui-btn-radius layui-btn-warm"><span
+                            class="layui-icon layui-icon-refresh-1"></span>重置
+                    </button>
+                </div>
+            </div>
+        </form>
+    </blockquote>
+</form>
+<!-- 查询条件结束-->
+
+
+<!-- 数据表格开始 -->
+<div>
+    <table class="layui-hide" id="logTable" lay-filter="logTable"></table>
+    <!-- 表格工具栏 -->
+    <div id="logToolBar" style="display: none;">
+        <button type="button" lay-event="batchDelete" class="layui-btn layui-btn-sm layui-btn-danger layui-btn-radius" shiro:hasPermission="info:batchdelete">
+            <span class="layui-icon layui-icon-delete"></span>批量删除
+        </button>
+    </div>
+</div>
+<!-- 数据表格结束 -->
+
+<script type="text/javascript" src="/resources/layui/layui.js"></script>
+<script type="text/javascript">
+    layui.use(['jquery', 'form', 'table', 'layer', 'laydate'], function () {
+        var $ = layui.jquery;
+        var form = layui.form;
+        var table = layui.table;
+        var layer = layui.layer;
+        var laydate = layui.laydate;
+
+        //初始化渲染日期时间组件
+        //日期时间范围选择
+        laydate.render({
+            elem: '#startTime',//绑定表单元素中的id属性
+            type: 'datetime'//控件类型 默认date
+        });
+        laydate.render({
+            elem: '#endTime',//绑定表单元素中的id属性
+            type: 'datetime'//控件类型 默认date
+        });
+
+        //渲染表格
+        var tableIns = table.render({
+            elem: '#logTable'//绑定表格组件的id
+            , toolbar: '#logToolBar'
+            , height: 'full-110'
+            , title: '用户操作日志数据表'
+            , url: '/logs/logList/' //数据接口
+            , page: true //开启分页
+            , cols: [ [
+                {type: 'checkbox', fixed: 'left'}
+                , {field: 'lid', title: 'ID', align: 'center', width: '5%'}
+                , {field: 'uname', title: '登陆用户', align: 'center', width: '20%'}
+                , {field: 'ltime', title: '登陆时间', align: 'center', width: '20%'}
+                , {field: 'ip', title: 'ip地址', align: 'center', width: '20%'}
+                , {field: 'content', title: '日志内容', align: 'center', width: '15%'}
+                , {field: 'type', title: '操作类型', align: 'center', width: '15%'}
+            ] ]
+            //回调函数
+            , done: function (res,curr, count) {
+                if (curr > 1 && res.data.length == 0) {
+                    var pageValue = curr -1;
+                    tableIns.reload({
+                        page:{curr:pageValue}
+                    })
+                }
+            }
+
+        });
+
+        //绑定模糊查询监听事件 submit是layui规定的 doSearch是查询按钮绑定的属性 自己定义的
+        form.on("submit(doSearch)", function (data) {
+            //表格数据重新加载
+            tableIns.reload({
+                where: data.field //额外的参数
+                , page: {
+                    curr: 1 //重新从第 1 页开始
+                }
+            });
+            return false; //关闭跳转页面
+        });
+
+        //批量删除触发事件
+        table.on('toolbar(logTable)', function (obj) {
+            switch (obj.event) {
+                case 'batchDelete':
+                    batchDelete();//批量删除方法
+                    break;
+            }
+        });
+
+        function batchDelete() {
+            var checkStatus = table.checkStatus('logTable'); //logTable 即为lay-filter 对应的值
+
+            var length = checkStatus.data.length;
+            if (length > 0) {
+                layer.confirm('是否要删除这' + length + '条数据吗?', {icon: 3, title: '提示'}, function (index) {
+
+                    var checkData = checkStatus.data;//获取选中行的数据
+                    var idArr = [];
+                    for (var i = 0; i < length; i++) {
+                        idArr.push(checkData[i].lid);//获取选中行的id
+
+                    }
+                    var ids = idArr.join(",");//转成json
+                    console.log(ids);
+
+                    $.post("/logs/delete", {"ids": ids},
+                        function (result) {
+                        if (result.status) {
+                            //删除成功后刷新数据表格
+                            tableIns.reload();
+                        }
+                        layer.msg(result.message);
+                    }, "json");
+                    layer.close(index);//关闭提示框
+                });
+            } else {
+                layer.msg("请选择要删除的行", {icon: 2});
+            }
+
+        }
+
+    });
+
+
+</script>
+</body>
+</html>

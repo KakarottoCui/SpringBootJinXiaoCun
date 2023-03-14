@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <title>销售退货查询</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/resources/layui/css/layui.css" media="all"/>
+    <link rel="stylesheet" href="/resources/css/public.css" media="all"/>
+</head>
+<body class="childrenBody">
+<!-- 查询条件开始-->
+<form class="layui-form">
+    <blockquote class="layui-elem-quote quoteBox">
+        <form class="layui-form">
+            <div class="layui-form-item">
+
+                <div class="layui-col-md3">
+                    <label class="layui-form-label" style="width: 70px;">销售编号</label>
+                    <div class="layui-input-inline" style="width: 150px;">
+                        <input type="text" name="outserial" id="outserial" class="layui-input searchVal"
+                               placeholder="请输入销售编号"/>
+                    </div>
+                </div>
+                
+                <div class="layui-col-md2">
+                    <label class="layui-form-label" style="width: 70px;">开始时间</label>
+                    <div class="layui-input-inline" style="width: 80px;">
+                        <input type="text" readonly name="startTime" id="startTime" class="layui-input searchVal"
+                               placeholder="开始时间"/>
+                    </div>
+                </div>
+                <div class="layui-col-md2">
+                    <label class="layui-form-label" style="width: 70px;">结束时间</label>
+                    <div class="layui-input-inline" style="width: 80px;">
+                        <input type="text" readonly name="endTime" id="endTime" class="layui-input searchVal"
+                               placeholder="结束时间"/>
+                    </div>
+                </div>
+
+                <div class="layui-col-md2" style="text-align: center;">
+                    <button type="button" class="layui-btn layui-btn-radius" lay-submit lay-filter="doSearch" shiro:hasPermission="returnsale:view">
+                        <span class="layui-icon layui-icon-search"></span>查询
+                    </button>
+                    <button type="reset" class="layui-btn layui-btn-radius layui-btn-warm"><span
+                            class="layui-icon layui-icon-refresh-1"></span>重置
+                    </button>
+                </div>
+            </div>
+        </form>
+    </blockquote>
+</form>
+<!-- 查询条件结束-->
+
+
+<!-- 数据表格开始 -->
+<div>
+    <table class="layui-hide" id="OutsaleTable" lay-filter="OutsaleTable"></table>
+    <!-- 表格工具栏 -->
+</div>
+<!-- 数据表格结束 -->
+
+<script type="text/javascript" src="/resources/layui/layui.js"></script>
+<script type="text/javascript">
+    layui.use(['jquery', 'form', 'table', 'layer', 'laydate'], function () {
+        var $ = layui.jquery;
+        var form = layui.form;
+        var table = layui.table;
+        var layer = layui.layer;
+        var laydate = layui.laydate;
+
+        //初始化渲染日期时间组件
+        //日期时间范围选择
+        laydate.render({
+            elem: '#startTime',//绑定表单元素中的id属性
+            type: 'datetime'//控件类型 默认date
+        });
+        laydate.render({
+            elem: '#endTime',//绑定表单元素中的id属性
+            type: 'datetime'//控件类型 默认date
+        });
+
+        //渲染表格
+        var tableIns = table.render({
+            elem: '#OutsaleTable'//绑定表格组件的id
+            , height: 'full-110'
+            , title: '退货数据表'
+            , url: '/outsale/outsaleList/' //数据接口
+            , page: true //开启分页
+            , cols: [ [
+                {field: 'id', title: 'ID', align: 'center', width: '7%'}
+                , {field: 'goodsname', title: '商品名称', align: 'center', width: '13%'}
+                , {field: 'gnumbering', title: '商品编号', align: 'center', width: '13%'}
+                , {field: 'salenumber', title: '销售编号', align: 'center', width: '13%'}
+                , {field: 'outserial', title: '退货编号', align: 'center', width: '13%'}
+                , {field: 'number', title: '退货数量', align: 'center', width: '8%'}
+                , {field: 'outprice', title: '退货总价格', align: 'center', width: '8%'}
+                , {field: 'outtime', title: '退货时间', align: 'center', width: '14%'}
+                , {field: 'operateperson', title: '操作人', align: 'center', width: '8%'}
+                , {field: 'remark', title: '备注', align: 'center'}
+            ] ]
+            //回调函数
+            , done: function (res,curr, count) {
+                if (curr > 1 && res.data.length == 0) {
+                    var pageValue = curr -1;
+                    tableIns.reload({
+                        page:{curr:pageValue}
+                    })
+                }
+            }
+
+        });
+
+
+        //绑定模糊查询监听事件 submit是layui规定的 doSearch是查询按钮绑定的属性 自己定义的
+        form.on("submit(doSearch)", function (data) {
+            //表格数据重新加载
+            tableIns.reload({
+                where: data.field //额外的参数
+                , page: {
+                    curr: 1 //重新从第 1 页开始
+                }
+            });
+            return false; //关闭跳转页面
+        });
+
+
+    });
+
+
+</script>
+</body>
+</html>

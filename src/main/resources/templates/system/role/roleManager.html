@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <title>角色管理</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/resources/layui/css/layui.css" media="all" />
+    <link rel="stylesheet" href="/resources/css/public.css" media="all" />
+    <link rel="stylesheet" href="/resources/layui_ext/dtree/dtree.css" media="all" />
+    <link rel="stylesheet" href="/resources/layui_ext/dtree/font/dtreefont.css" media="all" />
+</head>
+<body class="childrenBody">
+<!-- 查询条件开始-->
+
+<form class="layui-form">
+    <blockquote class="layui-elem-quote quoteBox">
+        <form class="layui-form" >
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">角色名称</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="rolename" id="rolename" class="layui-input searchVal" placeholder="请输入角色名称" />
+                    </div>
+                </div>
+                <div class="layui-inline">
+                    <button type="button" class="layui-btn layui-btn-radius" lay-submit lay-filter="doSearch" shiro:hasPermission="role:view"><span class="layui-icon layui-icon-search"></span>查询</button>
+                    <button type="reset" class="layui-btn layui-btn-radius layui-btn-warm"><span class="layui-icon layui-icon-refresh-1"></span>重置</button>
+                </div>
+            </div>
+        </form>
+    </blockquote>
+</form>
+<!-- 查询条件结束-->
+
+
+<!-- 数据表格开始 -->
+<div>
+    <table class="layui-hide" id="roleTable" lay-filter="roleTable"></table>
+    <!-- 工具栏 -->
+    <div id="roleToolBar" style="display: none;">
+        <button type="button" lay-event="add" class="layui-btn layui-btn-radius layui-btn-sm" shiro:hasPermission="role:create"><span class="layui-icon layui-icon-add-1"></span>添加角色</button>
+    </div>
+
+    <div id="roleRowBar" style="display: none;">
+        <button type="button" lay-event="update" class="layui-btn layui-btn-sm layui-btn-radius" shiro:hasPermission="role:update"><span class="layui-icon layui-icon-edit"></span>更新
+        </button>
+        <button type="button" lay-event="delete" class="layui-btn layui-btn-sm layui-btn-radius layui-btn-danger" shiro:hasPermission="role:delete">
+            <span class="layui-icon layui-icon-delete"></span>删除
+        </button>
+        <button type="button" lay-event="selectRolePermission" class="layui-btn layui-btn-radius layui-btn-sm" shiro:hasPermission="role:selectPermission">
+            <span class="layui-icon layui-icon-about"></span>分配权限
+        </button>
+    </div>
+</div>
+<!-- 数据表格结束 -->
+
+<!-- 添加和修改的弹出层开始 -->
+<div  style="display: none;padding: 5px" id="addOrUpdateDiv">
+    <form class="layui-form" style="width:80%;margin-top: 20px;" id="dataFrm" lay-filter="dataFrm">
+        <!-- 隐藏域，保存角色id -->
+        <input type="hidden" name="roleid" id="roleid">
+
+
+        <div class="layui-form-item layui-row layui-col-xs12">
+            <label class="layui-form-label">角色名称</label>
+            <div class="layui-input-block">
+                <input type="text" class="layui-input" name="rolename"  lay-verify="required" placeholder="请输入角色名称">
+            </div>
+        </div>
+        <div class="layui-form-item layui-row layui-col-xs12">
+            <label class="layui-form-label">角色备注</label>
+            <div class="layui-input-block">
+                <textarea placeholder="请输入角色备注" name="remark" id="remark" class="layui-textarea userDesc"></textarea>
+            </div>
+        </div>
+        <div class="layui-form-item layui-row layui-col-xs12">
+            <div class="layui-input-block" style="text-align: center;">
+                <button type="button" class="layui-btn layui-btn-radius" lay-submit lay-filter="doSubmit"><span class="layui-icon layui-icon-add-1"></span>提交</button>
+                <button type="reset" class="layui-btn  layui-btn-radius layui-btn-warm"><span class="layui-icon layui-icon-refresh-1"></span>重置</button>
+            </div>
+        </div>
+    </form>
+</div>
+<!-- 添加和修改的弹出层结束 -->
+
+<!-- 分配权限的弹出层 开始 -->
+<div style="display: none;" id="selectRolePermissionDiv">
+    <ul id="permissionTree" class="dtree" data-id="0"></ul>
+</div>
+<!-- 分配权限的弹出层 结束-->
+
+
+<script type="text/javascript" src="/resources/layui/layui.js"></script>
+<script type="text/javascript">
+    layui.extend({
+        dtree: '/resources/layui_ext/dtree/dtree'   // {/}的意思即代表采用自有路径，即不跟随 base 路径
+    }).use(['jquery','form','table','layer','dtree'],function () {
+        var $=layui.jquery;
+        var form=layui.form;
+        var table=layui.table;
+        var layer=layui.layer;
+        var dtree=layui.dtree;
+
+        //渲染表格
+        var tableIns = table.render({
+            elem: '#roleTable'//绑定表格组件的id
+            , toolbar: '#roleToolBar'
+            , height: 'full-110'
+            , title: '角色数据表'
+            , url: '/role/roleList/' //数据接口
+            , page: true //开启分页
+            , cols: [ [
+                {type: 'checkbox', fixed: 'left'}
+                , {field: 'roleid', title: 'ID', align: 'center', width: '8%'}
+                , {field: 'rolename', title: '角色名称', align: 'center', width: '20%'}
+                , {field: 'remark', title: '备注', align: 'center', width: '25%'}
+                , {field: 'type', title: '操作类型', align: 'center', width: '30%',toolbar: "#roleRowBar"}
+            ] ]
+            //回调函数
+            , done: function (res,curr, count) {
+                if (curr > 1 && res.data.length == 0) {
+                    var pageValue = curr -1;
+                    tableIns.reload({
+                        page:{curr:pageValue}
+                    })
+                }
+            }
+
+        });
+
+        //绑定模糊查询监听事件 submit是layui规定的 doSearch是查询按钮绑定的属性 自己定义的
+        form.on("submit(doSearch)", function (data) {
+            //表格数据重新加载
+            tableIns.reload({
+                where: data.field //额外的参数
+                , page: {
+                    curr: 1 //重新从第 1 页开始
+                }
+            });
+            return false; //关闭跳转页面
+        });
+
+        table.on("toolbar(roleTable)",function (obj) {
+                switch (obj.event) {
+                    case "add":
+                        openAddroleWindow();
+                        break;
+                }
+        });
+
+        var mainIndex;//弹出层的索引下标
+        var url;//提交路径
+
+        //弹出添加框函数
+        function openAddroleWindow() {
+            mainIndex = layer.open({
+                type:1,
+                title:"添加角色信息",
+                area:["600px","320px"],
+                content:$("#addOrUpdateDiv"),//内容窗口
+                success:function () {
+                    //每次开启清空弹出框数据
+                    $("#dataFrm")[0].reset();
+                    url="/role/addrole";
+                }
+            });
+        }
+
+        //监听添加和修改窗口的提交事件
+        form.on("submit(doSubmit)", function (data) {
+            //表格数据重新加载
+            console.log(data);
+            $.post(url,data.field,function (result) {
+                //判断是否成功
+                if (result.status){
+                    //成功表格刷新
+                    tableIns.reload();
+                }
+                //弹出是否成功消息
+                layer.msg(result.message);
+                //关闭窗口
+                layer.close(mainIndex)
+            },"json");
+            return false; //关闭跳转页面
+        });
+
+        //行工具栏
+        table.on("tool(roleTable)", function (obj) {
+            var data =obj.data;
+            switch (obj.event) {
+                //修改数据
+                case 'update':
+                    openUpdateRoleWindow(data);
+                    break;
+                case 'delete':
+                    deleteRole(data);
+                    break;
+                case 'selectRolePermission':
+                    selectRolePermission(data);
+                    break;
+            }
+        });
+
+        //修改
+        function openUpdateRoleWindow(data) {
+            mainIndex = layer.open({
+                type:1,
+                title:"修改角色",
+                area:["500px","350px"],
+                content:$("#addOrUpdateDiv"),//内容窗口
+                success:function () {
+                    form.val("dataFrm",data);
+                    url="/role/updaterole";
+                }
+            });
+        }
+
+        //删除单条数据
+        function deleteRole(data) {
+            layer.confirm('是否要删除这条数据吗?', {icon: 3, title: '提示'}, function (index) {
+                $.post("/role/deleteOne", {"id": data.roleid}, function (result) {
+                    if (result.status) {
+                        //删除成功后刷新数据表格
+                        tableIns.reload();
+                    }
+                    layer.msg(result.message);
+                }, "json");
+                layer.close(index);//关闭提示框
+            });
+        }
+
+        //分配权限
+        function selectRolePermission(data){
+            mainIndex = layer.open({
+                type:1,
+                title:"分配"+data.rolename+"的权限",
+                area:["300px","500px"],
+                content:$("#selectRolePermissionDiv"),//内容窗口
+                btn: ['确定', '取消'],
+                btnAlign: 'c',
+                yes: function (index, layero) {
+                    //获取所有选中节点
+                   var permissionData= dtree.getCheckbarNodesParam("permissionTree");
+                    console.log(permissionData)
+                    var idArr =[];
+                    for (var i=0;i<permissionData.length;i++){
+                        idArr.push(permissionData[i].nodeId);
+                    }
+                    var ids = idArr.join(",");
+                        $.post("/role/saveRolePermission",{"ids":ids,"roleid":data.roleid},function (result) {
+                            layer.msg(result.message)
+                        },"json");
+                         layer.close(index);//关闭提示框
+
+                },
+                btn2: function (index, layero) {
+                },
+                success:function () {
+                    //加载菜单树
+                    //绑定菜单树
+                    menuTree = dtree.render({
+                        elem:"#permissionTree",
+                        url:"/role/initPermissionByRoleId?roleId="+data.roleid,
+                        dataStyle: "layuiStyle",  //使用layui风格的数据格式
+                        response:{message:"msg",statusCode:0},  //修改response中返回数据的定义
+                        dataFormat:"list",
+                        checkbar: true,
+                        checkbarType: "all"
+                    });
+                }
+            });
+        }
+    });
+</script>
+</body>
+</html>
