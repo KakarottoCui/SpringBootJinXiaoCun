@@ -1,7 +1,7 @@
 # SpringBootJinXiaoCun
  基于JAVA SpringBoot进销存商品管理系统设计
 
-演示视频链接：https://live.csdn.net/v/282484
+演示视频链接：https://www.bilibili.com/video/BV1nN411F7Nd/
 
 实现的功能
 
